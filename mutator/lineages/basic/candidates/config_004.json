@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are watching a volleyball match from a fixed camera.\n\nThis clip begins at {start} seconds into the match.\n\nList ONLY specific meaningful volleyball events in live play.\n1. A live rally strictly begins with a 'serve' and ends when the ball is dead. IGNORE all casual touches, practice hits, and dead-ball passing between points.\n2. Volleyball rallies follow a logical flow: Serve -> Receive -> Pass -> Attack -> Dig. Use this sequence to classify events accurately. A 'receive' defends a serve; a 'dig' defends an attack.\n3. Skip routine intermediate passes. Only report an event if it clearly matches a definition below.\n\nFor each event give:\n  t       - the precise time the player physically strikes the ball\n  type    - must be one of:\n            serve: the initial hit from behind the baseline that starts a rally\n            receive: the first contact defending a serve\n            dig: the first contact defending an attack\n            set: an assist pass that directly leads to a kill\n            attack: an offensive hit sent over the net that does not score a point\n            kill: an attack that directly scores a point and ends the rally\n            block: deflecting an attack at the net\n  side    - \"left\" or \"right\": which side of the net the player is on (left half or right half of the screen)\n  number  - the player's jersey number as a string, or null if you cannot read it\n  error   - true if the touch was a mistake\n  point   - true if the rally ended here and a point was scored",
+ "chunk_len": 30.0,
+ "overlap": 8.0,
+ "fps": 5,
+ "width": 640,
+ "crop": null,
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

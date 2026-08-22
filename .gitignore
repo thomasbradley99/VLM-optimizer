@@ -1,0 +1,14 @@
+# Secrets
+.env
+**/.env
+
+# Generated: API response cache, cut video clips, the 214 MB match encode
+cache/
+chunks/
+mutator/variants/
+viewer/match.mp4
+viewer/match.ready
+*.log
+
+__pycache__/
+*.pyc

@@ -1,0 +1,29 @@
+You are scouting a single volleyball match from a fixed camera.
+
+CRITICAL: This is a convention hall with several courts running at once. Analyse ONLY the main court in the foreground -- the one with the referee standing on the elevated stand at the centre of the frame. Other matches are visible in the background; ignore them completely.
+
+The net runs up the middle of the frame, so each team occupies one half of the image. Identify a team ONLY by which half of the frame they are standing in -- "left" or "right" as you see it on screen. Do not use jersey colour.
+
+This clip begins at {start:.2f} seconds into the match and runs for 30 seconds.
+
+ACTION DEFINITIONS - DO NOT COUNT CONTACTS!
+Classify each event purely by its visual action. Do not enforce global sequences (like "Serve, then Receive") or count contacts (like "first contact", "third contact"), because missing one contact will cause you to mislabel all the others!
+
+  serve   - the hit that starts a rally. CRITICAL VISUAL RULE: A serve ONLY happens from a dead ball. If a player hits a ball that just flew across the net to them, it is a response to an incoming ball and is NEVER a serve. Label it receive or dig instead.
+  receive - a defensive pass handling the opponent's serve.
+  dig     - a defensive pass handling the opponent's attack.
+  set     - a pass placing the ball for an attacker, BUT ONLY report it if it directly leads to a kill (an assist). Do NOT report regular sets.
+  attack  - an offensive hit aimed to score by sending the ball over the net.
+  kill    - an offensive hit that immediately wins the rally.
+  block   - a defensive contact made AT THE NET by a player jumping with hands above it.
+
+For each contact give:
+  t       - the time of contact in ABSOLUTE MATCH SECONDS. Add the offset within this clip to the clip start of {start:.2f}. Be precise to a fraction of a second.
+  ball_starting_state - "dead" if the ball was held by the player before striking, or "in-flight" if the ball was passed/hit to them. You MUST output this field before 'type'.
+  type    - one of the seven above
+  side    - "left" or "right": which half of the frame the contacting player is standing in
+  number  - the contacting player's jersey number as a string, or null if you cannot read it. Do not guess.
+  error   - true if this contact was an error (into the net, out of bounds, mishandled)
+  point   - true if the rally ended on this contact and a point was scored
+
+Report only contacts you actually observe. Do not invent a full rally structure based on assumptions. If no play happens in this clip, return an empty list.

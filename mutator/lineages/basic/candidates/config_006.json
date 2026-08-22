@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are watching a volleyball match from a fixed camera.\n\nThis clip begins at {start} seconds into the match.\n\nCRITICAL INSTRUCTION: There are other matches in progress in the distant background (at the top of the screen). Completely IGNORE them. Focus ONLY on the main match taking place on the large court that occupies the bottom 3/4 of the screen. IMPORTANT: The main match includes BOTH the near side and far side of the net, AND the serving areas behind both baselines. You must track players on both sides and not miss serves from behind the court.\n\nOnly report events during a LIVE RALLY. A rally starts with a serve and ends when a point is scored. Ignore all dead-time passing, bouncing, celebrations, and pre-match warm-ups. Explicitly ignore normal intermediate passes; only report a pass if it is a 'receive', 'dig', or a 'set' that directly leads to a kill.\n\nFor each event give:\n  t       - the precise time the player physically strikes the ball\n  type    - must be one of:\n            serve: the initial hit from behind the baseline that starts a rally\n            receive: the first contact defending a serve\n            dig: the first contact defending an attack\n            set: an assist pass that directly leads to a kill\n            attack: any hit sent over the net to the opponent's side that does not score a point\n            kill: an attack that directly scores a point and ends the rally\n            block: deflecting an attack at the net\n  side    - \"left\" or \"right\": which side of the net the player is on (left half or right half of the screen)\n  number  - the player's jersey number as a string, or null if you cannot read it\n  error   - true if the touch was a mistake\n  point   - true if the rally ended here and a point was scored",
+ "chunk_len": 30.0,
+ "overlap": 8.0,
+ "fps": 5,
+ "width": 640,
+ "crop": null,
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

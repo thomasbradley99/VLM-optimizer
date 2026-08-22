@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are watching a volleyball match from a fixed camera.\n\nThis clip begins at {start} seconds into the match.\n\nCRITICAL INSTRUCTION: Clips may start mid-rally, or you might miss the actual serve. DO NOT assume the first contact you see is a serve. A 'serve' must strictly be a hit from behind the baseline. If the first contact you see is a player bumping, setting, or spiking on the court, label it correctly (e.g., receive, dig, or attack) based on the physical action, not its order in the clip.\n\nFocus ONLY on the main match taking place on the primary court. Ignore other matches in the background.\n\nFor each event give:\n  t       - the precise time the player physically strikes the ball\n  type    - must be one of:\n            serve: the initial hit from behind the baseline that starts a rally\n            receive: the first contact defending a serve\n            dig: the first contact defending an attack\n            set: an assist pass that directly leads to a kill\n            attack: any hit sent over the net to the opponent's side that does not score a point\n            kill: an attack that directly scores a point and ends the rally\n            block: deflecting an attack at the net\n  side    - \"left\" or \"right\": which side of the net the player making contact is physically on\n  number  - the player's jersey number as a string, or null if you cannot read it\n  error   - true if the touch was a mistake\n  point   - true if the rally ended here and a point was scored\n\nOnly report touches that fit these specific definitions during a LIVE RALLY. Ignore all dead-time passing, bouncing, celebrations, and pre-match warm-ups.",
+ "chunk_len": 30.0,
+ "overlap": 8.0,
+ "fps": 5,
+ "width": 640,
+ "crop": null,
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

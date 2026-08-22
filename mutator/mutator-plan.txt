@@ -1,0 +1,247 @@
+# Mutator — build plan
+
+An AI that reads the results, works out what's wrong, changes the prompt, predicts what will happen, and reports whether it was right.
+
+The point is not a higher F1. The point is whether it can do the diagnosis a person would do.
+
+---
+
+## What already exists
+
+Working baseline in `VLMvolleyball/`. Don't touch any of it.
+
+| | |
+|---|---|
+| `ingest.py` | CSV → 550 scored events |
+| `chunk.py` | 169 chunks, 30s, 8s overlap, cached |
+| `detect.py` | one prompt per chunk, async, cached by prompt hash |
+| `evaluate.py` | matching, F1 at 3 tolerances × 4 strictness levels |
+| `report.py` | per-type table, confusion matrix, timeline |
+| `main.py` | end to end |
+
+**Current state:** headline F1 **0.342** at ±1.0s, timing+type. Side-based team prompt in place (72% team accuracy, up from 62%).
+
+**The dominant failure:** `set` predicted 142 times against 47 real, absorbing 27 attacks, 20 digs, 15 kills. Wrong-action is 43% of all predictions.
+
+That failure is the benchmark for the mutator. **A person reading the confusion matrix and the schema arrives at the diagnosis in about a minute: the ground truth only logs `set` for `assist-2`, so the model's definition is wider than the annotator's. If the mutator gets there unaided, it works. If it says something vague about clarity, it doesn't.**
+
+---
+
+## Layout
+
+Everything new lives in `mutator/`. Nothing outside it changes.
+
+```
+mutator/
+├── mutator.py              # one round per invocation
+├── context.py              # assembles what the mutator sees
+├── notebook.py             # read/write notebook, versioning
+├── prompts/
+│   └── system.txt          # the mutator's own instructions
+└── notebook/
+    ├── summary.md          # current beliefs, rewritten each round
+    ├── versions/           # summary_v001.md, v002...
+    └── entries/            # iter_000.md, iter_001...
+```
+
+It imports `evaluate`, `report`, `ingest` read-only. It writes candidate prompts to wherever `detect.py` already reads from.
+
+---
+
+## What the mutator sees
+
+`context.py` builds one text block. Five parts:
+
+**1. The current prompt** — verbatim.
+
+**2. Scores** — headline F1, and the per-type table with GT count, AI count, precision, recall, F1. The counts matter as much as the rates: 142 predicted against 47 real is the signal, and a rate alone hides it.
+
+**3. The confusion matrix** — on time-matched pairs. This is where the diagnosis lives.
+
+**4. The ground-truth schema.** Not optional, and easy to leave out by mistake.
+
+```
+Events derive from a human scout's CSV:
+  serve    = 'serve' in QUALIFIERS                (118)
+  receive  = ACTION == 'receive'                  (107)
+  dig      = 'dig' in QUALIFIERS                  (86)
+  set      = ACTION == 'assist-2'                 (47)
+  attack   = 'attack' in QUALIFIERS               (131)
+  kill     = 'kill' in QUALIFIERS                 (52)
+  block    = ACTION == 'block'                    (9)
+
+The scout logs 'set' only for a deliberate second contact that sets
+up an attack. Any other overhead touch is a dig or an attack.
+```
+
+Without this the mutator can't tell a perception failure from a definitional mismatch. Those need opposite fixes, so it has to be able to distinguish them.
+
+**5. The notebook** — current summary, plus the last 5 entries in full. Older entries as one-line headlines only, so context stays bounded.
+
+---
+
+## The round
+
+```
+python3 mutator/mutator.py
+```
+
+One round, then stop. No loop yet.
+
+```
+read notebook + context
+      ↓
+write CONJECTURE, CHANGE, PREDICTION
+      ↓
+save entry + candidate prompt to disk          ← before the run, always
+      ↓
+run pipeline with the candidate
+      ↓
+evaluate
+      ↓
+mutator reads results, writes OUTCOME + VERDICT
+      ↓
+rewrite summary.md, version the old one
+      ↓
+elitism: keep best-by-F1 prompt, not latest
+```
+
+**The commit-before-run step is the design.** If the mutator sees results before writing its prediction, it will rationalise, and the whole exercise becomes theatre. Enforce it in code: the entry file is written and closed before `detect.py` is invoked.
+
+---
+
+## Entry format
+
+`notebook/entries/iter_003.md`
+
+```markdown
+# Iteration 3
+
+## CONJECTURE
+`set` is predicted 142 times against 47 in ground truth, and the confusion
+matrix shows it absorbing 27 attacks, 20 digs and 15 kills. This is not a
+perception failure — the model is seeing the contacts. It's a definitional
+mismatch: the scout logs `set` only for a deliberate assist-2, whereas the
+prompt lets the model call any overhead touch a set.
+
+## CHANGE
+Added to the prompt: a set is only the deliberate second contact of a rally
+that sets up an attack. Any other overhead touch is a dig if defensive, an
+attack if sent over the net.
+
+## PREDICTION
+- set predictions fall from 142 to somewhere near 60
+- set precision rises from 0.09 to above 0.25
+- attack and dig recall rise, maybe 5-8 points each, as those events stop
+  being labelled set
+- serve unaffected
+- headline F1 rises from 0.342 to roughly 0.40
+
+## OUTCOME
+- set predictions 142 → 71
+- set precision 0.09 → 0.31
+- attack recall 0.176 → 0.244
+- dig recall 0.221 → 0.259
+- serve F1 0.398 → 0.401
+- headline F1 0.342 → 0.389
+
+## VERDICT
+Right, and for the right reason. The mismatch was definitional, not
+perceptual — every prediction moved in the direction the hypothesis
+implied and serve was untouched as expected. F1 landed slightly below
+the 0.40 estimate; the residual set errors are now concentrated on
+genuine second contacts that the model times a beat late, which is a
+different problem.
+```
+
+The VERDICT is the valuable bit. A wrong prediction with a correct diagnosis is worth more than a lucky gain.
+
+---
+
+## Summary format
+
+`notebook/summary.md`, rewritten each round, old versions kept.
+
+```markdown
+# What I know about this pipeline
+
+## Established
+- Contact detection is decent: 65% of ground-truth events are spotted
+  within 1s. Timing is not the bottleneck.
+- Classification is the bottleneck: only 37% of spotted contacts get the
+  right label.
+- Serve is the one reliable type (50/52 when spotted).
+- Side-based team labelling beats colour: 72% vs 62%.
+
+## Ruled out
+- Constant temporal lag. Shifting everything by -0.7s moves F1 0.342 → 0.380
+  and no further. Real but small, not the story.
+- Teams assigned by court side with an end-swap. Team accuracy is flat at
+  60/64/61% across the three sets — no swap, just mediocre.
+
+## Open
+- Does the model distinguish dig from attack at all, or is it guessing from
+  rally position?
+- Are missed serves a resolution problem (far baseline, occluded by the
+  scorer's table) or a prompt problem?
+- block is 0-for-7 but n=9, so nothing can be concluded.
+
+## Current hypothesis
+`set` is absorbing every mid-rally contact because the prompt's definition
+is wider than the scout's.
+```
+
+---
+
+## Build order
+
+**1. `context.py`** — assemble the block from existing modules. Print it. Read it yourself and ask: could I diagnose the set problem from this alone? If not, something's missing.
+
+**2. `notebook.py`** — read, write, version. Handle the empty first round.
+
+**3. `prompts/system.txt`** — the mutator's instructions. Key points:
+   - You are diagnosing a pipeline, not writing prompts. Find the mechanism first.
+   - Cite specific numbers in the conjecture. "Set is over-predicted" is not a conjecture; "142 vs 47, absorbing 27 attacks" is.
+   - Distinguish perception failures from definitional mismatches. They need opposite fixes.
+   - Predictions must be falsifiable and per-type. Say what will *not* move as well as what will.
+   - Change one thing per round.
+   - In the verdict, say plainly whether you were wrong.
+
+**4. `mutator.py --dry-run`** — one call, print CONJECTURE / CHANGE / PREDICTION, write nothing, run nothing.
+
+**5. Stop there.** Show the output. **The test is whether it finds the `set` problem unaided.**
+
+**6.** Only then wire in the run, the outcome, the verdict, and elitism.
+
+---
+
+## The first test
+
+Before any of the loop machinery is built, run step 4 and look at what comes back.
+
+**Good** — it cites 142 vs 47, points at the confusion matrix, names the assist-2 definition, proposes a narrower definition, and predicts which types will move.
+
+**Bad** — it says the prompt could be clearer, or suggests more examples, or proposes three changes at once, or predicts "F1 will improve."
+
+If it's bad, the fix is almost always in `context.py`, not in the system prompt. It's being asked to reason without the evidence.
+
+---
+
+## Rules
+
+1. Nothing outside `mutator/` is modified.
+2. The mutator changes the prompt only. Never the metric, splits, dedupe or evaluation.
+3. Prediction is written and closed to disk before the pipeline runs.
+4. One change per round.
+5. Elitism: keep best-by-F1, not latest.
+6. One round per invocation. No autonomous loop until a round has been watched end to end.
+7. Every prompt, score, entry and summary version kept.
+
+---
+
+## What gets measured, beyond F1
+
+- **Prediction accuracy over rounds.** Did it call the direction and rough size right? If this improves, the mutator is learning about the system rather than just about the task.
+- **Diagnosis quality.** Did it name a mechanism, or reword the prompt?
+- **Did it find the `set` problem on round one?**
+- **Where did it loop?** Repeated conjectures already ruled out are a failure mode worth recording.

@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are watching a short clip of a volleyball match from one fixed camera.\nA net runs vertically up the middle of the frame, dividing it into a LEFT court and a RIGHT court.\nOnly the foreground court matters -- the one with the referee on the raised stand.\n\nDo NOT name any volleyball actions. Report only what you can literally see, as a list of moments,\neach with a time in seconds from the start of this clip:\n\n  - the ball is on the LEFT or the RIGHT of the net\n  - the ball CROSSES the net, and in which direction\n  - a player MAKES CONTACT with the ball: the time, which side they stand on, their shirt colour,\n    their number if legible, and whether they were airborne or on the ground\n  - after that contact the ball goes UP (staying their side), OVER (across the net), DOWN (to the\n    floor), or OUT\n  - the ball HITS THE FLOOR, and on which side\n  - nobody is playing: the ball is being carried, rolled, held, or lying still\n\nCRITICAL: Do not report every contact. You MUST omit and ignore a team's second contact during their possession (an intermediate pass that merely puts the ball UP for a teammate) UNLESS the team's next contact sends the ball OVER the net AND hits the opponent's floor.\n\nBe precise about the times. If nothing is in play, say so in one line.\n\nThis clip begins at {start} seconds into the match.",
+ "chunk_len": 10.0,
+ "overlap": 3.0,
+ "fps": 5,
+ "width": 640,
+ "crop": "1920:620:0:330",
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

@@ -1,0 +1,13 @@
+{
+ "mode": "two_stage",
+ "prompt": "You are watching a 10-second clip of a volleyball match from one fixed camera.\nA net runs vertically up the middle of the frame, dividing it into a LEFT court and a RIGHT court.\nOnly the foreground court matters -- the one with the referee on the raised stand.\n\nDo NOT name any volleyball actions. Report only what you can literally see, as a list of moments,\neach with a time in seconds from the start of this clip:\n\n  - the ball is on the LEFT or the RIGHT of the net\n  - the ball CROSSES the net, and in which direction\n  - a player MAKES CONTACT with the ball: the time, which side they stand on, their shirt colour,\n    their number if legible, and whether they were airborne or on the ground\n  - after that contact the ball goes UP (staying their side), OVER (across the net), DOWN (to the\n    floor), or OUT\n  - the ball HITS THE FLOOR, and on which side\n  - nobody is playing: the ball is being carried, rolled, held, or lying still\n\nBe precise about the times. If nothing is in play, say so in one line.\n\nThis clip begins at {start:.2f} seconds into the match.",
+ "prompt2": "Below are literal observations from a 10-second volleyball clip that began at\n{start:.2f} seconds into the match. You cannot see the video. Work out which volleyball actions\nthese observations correspond to.\n\nUse the sequence to reason:\n  a rally begins with a serve, struck from behind the back line\n  the first contact answering a serve is a receive\n  a contact answering an opponent's attack is a dig\n  any contact that sends the ball OVER the net is an attack\n  an attack after which the ball hits the opponent's floor is a kill\n  a contact at the net by an airborne player with hands high is a block\n  a contact that puts the ball UP for a team-mate is a set, but report it ONLY when the next\n    contact is a kill\n\nReport one event per real contact:\n  t       {start:.2f} plus the observed offset, in absolute match seconds\n  side    \"left\" or \"right\" -- the half the contacting player was standing in\n  number  shirt number as a string, or null\n  error   true if the ball went into the net or out of bounds off this contact\n  point   true if the rally ended on this contact\n\nDo not invent contacts the observations do not mention. If the observations describe no play,\nreturn an empty list.\n\nOBSERVATIONS:\n{obs}",
+ "chunk_len": 10.0,
+ "overlap": 3.0,
+ "fps": 5,
+ "width": 640,
+ "crop": "1920:620:0:330",
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

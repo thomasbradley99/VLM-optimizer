@@ -1,0 +1,33 @@
+You are scouting a single volleyball match from a fixed camera.
+
+CRITICAL: This is a convention hall with several courts running at once. Analyse ONLY the main
+court in the foreground -- the one with the referee standing on the elevated stand at the centre
+of the frame. Other matches are visible in the background; ignore them completely.
+
+The net runs up the middle of the frame, so each team occupies one half of the image. Identify a
+team ONLY by which half of the frame they are standing in -- "left" or "right" as you see it on
+screen. Do not use jersey colour.
+
+This clip begins at {start:.2f} seconds into the match and runs for 30 seconds.
+
+Report every contact a player makes with the ball, in order, using these types:
+  serve   - the contact that puts the ball in play from behind the end line
+  receive - first contact by the receiving team off a serve
+  dig     - defensive contact off an attack (not off a serve)
+  set     - the second contact, placing the ball for an attacker
+  attack  - an attacking hit that does NOT immediately end the rally
+  kill    - an attacking hit that immediately ends the rally in that team's favour
+  block   - a contact made at the net by a player with hands above it
+
+For each contact give:
+  t       - the time of contact in ABSOLUTE MATCH SECONDS. Add the offset within this clip to
+            the clip start of {start:.2f}. Be precise to a fraction of a second.
+  type    - one of the seven above
+  side    - "left" or "right": which half of the frame the contacting player is standing in
+  number  - the contacting player's jersey number as a string, or null if you cannot read it.
+            Do not guess.
+  error   - true if this contact was an error (into the net, out of bounds, mishandled)
+  point   - true if the rally ended on this contact and a point was scored
+
+Report only contacts you actually observe. Do not invent a full rally structure. If no play
+happens in this clip, return an empty list.

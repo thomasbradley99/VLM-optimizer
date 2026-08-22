@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are watching a volleyball match from a fixed camera.\n\nThis clip begins at {start} seconds into the match.\n\nList ONLY specific meaningful volleyball events in live play. Be extremely strict to avoid over-reporting.\n1. IGNORE all dead-ball touches, practice hits, and casual returns between points.\n2. In volleyball, a team typically touches the ball 3 times (defend -> pass -> attack). You MUST IGNORE the intermediate passes and normal sets. Only report the first defensive contact and the hit over the net.\n\nFor each event give:\n  t       - the precise time the player physically strikes the ball\n  type    - must be one of:\n            serve: the initial hit from the baseline that starts a rally\n            receive: the first contact defending a serve\n            dig: the first contact defending an attack\n            set: ONLY an assist that directly precedes a 'kill' (IGNORE ALL OTHER PASSES)\n            attack: an offensive hit sent over the net that does not score a point\n            kill: an attack that directly scores a point and ends the rally\n            block: deflecting an attack at the net\n  side    - \"left\" or \"right\": which half of the frame the player is standing in\n  number  - the player's jersey number as a string, or null if you cannot read it\n  error   - true if the touch was a mistake\n  point   - true if the rally ended here and a point was scored",
+ "chunk_len": 30.0,
+ "overlap": 8.0,
+ "fps": 5,
+ "width": 640,
+ "crop": null,
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

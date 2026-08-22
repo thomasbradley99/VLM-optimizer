@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VLM evaluation — scout vs model</title>
+<style>
+  :root {
+    --bg:#0e1116; --panel:#161b22; --edge:#2a3038; --text:#e6edf3;
+    --dim:#8b949e; --accent:#58a6ff;
+    --ok:#3fb950; --team:#d29922; --action:#db6d28; --miss:#f85149; --ghost:#a371f7;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:14px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  header { padding:10px 16px; border-bottom:1px solid var(--edge);
+           display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; font-weight:600; }
+  header .meta { color:var(--dim); font-size:12px; }
+  header a { color:var(--accent); font-size:12px; margin-left:auto; text-decoration:none; }
+
+  /* ground truth | video | model -- the two accounts of the same match, either side of it */
+  .lin { display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:14px;
+         padding:14px 14px 0; align-items:stretch; }
+  .linchart { background:var(--panel); border:1px solid var(--edge); border-radius:8px;
+              padding:8px 4px 4px; }
+  .linchart canvas { display:block; width:100%; height:130px; cursor:pointer; }
+  .lintab { background:var(--panel); border:1px solid var(--edge); border-radius:8px;
+            padding:10px 12px; font-size:12px; }
+  .lintab h2 { margin:0 0 8px; font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+               color:var(--dim); font-weight:600; }
+  .lrow { display:grid; grid-template-columns:12px 1fr auto; gap:8px; align-items:baseline;
+          padding:5px 0; border-bottom:1px solid #1b2027; cursor:pointer; }
+  .lrow:last-child { border-bottom:0; }
+  .lrow.cur { background:#1c2230; }
+  .lrow i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .lrow .nm { font-weight:600; }
+  .lrow .st { color:var(--dim); font-size:11px; font-family:ui-monospace, Menlo, monospace; }
+  .lrow .f { font-variant-numeric:tabular-nums; font-family:ui-monospace, Menlo, monospace; }
+  @media (max-width:1100px){ .lin { grid-template-columns:1fr; } }
+  .conv { margin:14px 14px 0; background:var(--panel); border:1px solid var(--edge);
+          border-radius:8px; padding:10px 12px; }
+  .conv h2 { margin:0 0 2px; font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+             color:var(--dim); font-weight:600; }
+  .conv .cap { color:var(--dim); font-size:11.5px; margin-bottom:8px; }
+  .ctab { display:grid; gap:2px; font-size:12px; }
+  .ctab .hd, .ctab .rw { display:grid; grid-template-columns:230px repeat(var(--n),1fr) 54px;
+                         gap:6px; align-items:center; }
+  .ctab .hd { color:var(--dim); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+              padding-bottom:3px; border-bottom:1px solid var(--edge); }
+  .ctab .rw { padding:3px 0; border-bottom:1px solid #1b2027; }
+  .ctab .rw:last-child { border-bottom:0; }
+  .ctab .c { text-align:center; font-weight:600; }
+  .ctab .yes { color:var(--ok); }
+  .ctab .no { color:#3a424d; }
+  .ctab .n { text-align:right; font-variant-numeric:tabular-nums; color:var(--dim); }
+  .ctab .all .n { color:var(--ok); }
+  .acc { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+  .accbox h3 { margin:0 0 2px; font-size:12.5px; font-weight:600; }
+  .accbox .seed { color:var(--dim); font-size:11px; margin-bottom:6px;
+                  font-family:ui-monospace, Menlo, monospace; }
+  .agrid { display:grid; gap:2px; font-size:10px; }
+  .agrid .hr { display:grid; grid-template-columns:34px 34px repeat(var(--r),1fr); gap:2px;
+               align-items:center; }
+  .agrid .lb { color:var(--dim); text-align:right; padding-right:2px;
+               white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .agrid .cell { height:13px; border-radius:2px; background:#1b2027; }
+  .agrid .cell.on { background:var(--ok); }
+  .agrid .rd { color:var(--dim); text-align:center; font-family:ui-monospace, Menlo, monospace;
+               font-size:9px; }
+  .simrow { margin-top:8px; color:var(--dim); font-size:11.5px; }
+  main { display:grid; grid-template-columns:300px minmax(0,1fr) 300px;
+         gap:14px; padding:14px; align-items:start; }
+  .col { background:var(--panel); border:1px solid var(--edge); border-radius:8px;
+         display:flex; flex-direction:column; height:calc(100vh - 28px); }
+  .colhead { padding:10px 12px; border-bottom:1px solid var(--edge); }
+  .colhead h2 { margin:0; font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+                font-weight:600; }
+  .colhead .sub { color:var(--dim); font-size:11px; margin-top:2px; }
+  .list { overflow-y:auto; flex:1; }
+  .row { padding:6px 10px; border-left:3px solid transparent; cursor:pointer;
+         border-bottom:1px solid #1b2027; }
+  .row:hover { background:#1c2230; }
+  .row.live { background:#23324a; }
+  .row .t { color:var(--dim); font-size:11px; font-variant-numeric:tabular-nums;
+            font-family:ui-monospace, Menlo, monospace; }
+  .row .m { font-size:13px; margin-top:1px; }
+  .row .v { font-size:10.5px; margin-top:1px; }
+  .row.none .m { color:#4a5058; font-style:italic; }
+
+  .stage { position:relative; background:#000; border-radius:8px; overflow:hidden; }
+  .stage video { display:block; width:100%; }
+  .stage canvas { position:absolute; inset:0; pointer-events:none; width:100%; height:100%; }
+  .controls { display:flex; gap:8px; align-items:center; margin:10px 0; flex-wrap:wrap; }
+  button { background:#0d1117; border:1px solid var(--edge); border-radius:6px;
+           color:var(--text); font:inherit; padding:5px 10px; cursor:pointer; }
+  button:hover { border-color:#3d4753; }
+  button.on { border-color:var(--accent); color:var(--accent); }
+  .clock { margin-left:auto; color:var(--dim); font-variant-numeric:tabular-nums;
+           font-family:ui-monospace, Menlo, monospace; font-size:12px; }
+  .timeline { background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:6px 0; }
+  .timeline canvas { display:block; width:100%; height:60px; }
+  .tlab { display:flex; justify-content:space-between; padding:2px 10px 0;
+          color:var(--dim); font-size:11px; }
+  .step { display:grid; grid-template-columns:auto 1fr auto; gap:5px; align-items:center;
+          margin-bottom:8px; }
+  .step button { padding:5px 9px; }
+  #spark { display:block; width:100%; height:34px; margin-top:8px; cursor:pointer; }
+  select { width:100%; margin-bottom:0 !important; background:#0d1117; color:var(--text); border:1px solid var(--edge);
+           border-radius:6px; padding:6px; font:inherit; margin-bottom:8px; }
+  .vc { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; padding:8px 10px;
+        border-bottom:1px solid var(--edge); }
+  .vc button { padding:5px 1px; color:var(--dim); }
+  .vc button.on { border-color:currentColor; background:#0f141a; }
+  .vc b { display:block; font-size:14px; font-variant-numeric:tabular-nums; }
+  .vc span { font-size:9px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+           gap:14px; margin-top:14px; }
+  .card { background:var(--panel); border:1px solid var(--edge); border-radius:8px; padding:12px; }
+  .card h2 { font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--dim);
+             margin:0 0 8px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th,td { padding:3px 5px; text-align:right; font-variant-numeric:tabular-nums; }
+  th { color:var(--dim); font-weight:600; font-size:10px; letter-spacing:.06em;
+       text-transform:uppercase; border-bottom:1px solid var(--edge); }
+  td:first-child, th:first-child { text-align:left; }
+  tr.key td { color:var(--accent); font-weight:600; }
+  .hint { color:var(--dim); font-size:11.5px; line-height:1.45; }
+  .evo { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:3px; }
+  .evo div { display:grid; grid-template-columns:58px 1fr; gap:6px; padding:3px 6px;
+             border-left:3px solid transparent; border-radius:3px; font-size:11.5px;
+             cursor:pointer; }
+  .evo div:hover { background:#1c2230; }
+  .evo div.cur { background:#23324a; }
+  .evo .n { color:var(--dim); font-family:ui-monospace, Menlo, monospace; }
+  .evo .a { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pbox { font:12px/1.55 ui-monospace, Menlo, monospace; white-space:pre-wrap;
+          background:#0d1117; border:1px solid var(--edge); border-radius:6px;
+          padding:12px 14px; margin:0; max-height:340px; overflow:auto; color:#c9d1d9; }
+  #pbox .add { color:var(--ok); }
+  #pbox .del { color:var(--miss); }
+  #pbox .none { color:var(--dim); font-style:italic; }
+  #pmode { font-size:11px; padding:3px 8px; color:var(--dim); }
+  .chk { display:grid; grid-template-columns:auto 1fr; gap:5px 9px; font-size:12px; }
+  .chk i { color:var(--ok); font-style:normal; }
+  .hero { display:flex; align-items:baseline; gap:8px; }
+  .hero b { font-size:26px; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  @media (max-width:1100px){ main { grid-template-columns:1fr; } .col { height:340px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>VLM evaluation</h1>
+  <span class="meta" id="meta">loading…</span>
+</header>
+<div class="lin">
+  <div class="linchart"><canvas id="lc"></canvas></div>
+  <div class="lintab" id="lintab"></div>
+</div>
+<div class="conv" id="conv"></div>
+<div class="conv" id="acc"></div>
+<main>
+  <!-- LEFT: ground truth -->
+  <div class="col">
+    <div class="colhead"><h2>Ground truth</h2>
+      <div class="sub" id="gtsub">the scout's sheet</div></div>
+    <div class="list" id="gtlist"></div>
+  </div>
+
+  <!-- CENTRE: the video -->
+  <section>
+    <div class="stage">
+      <video id="vid" preload="metadata" playsinline></video>
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="controls">
+      <button id="play">Play</button>
+      <button id="prev">◀ frame</button>
+      <button id="next">frame ▶</button>
+      <button id="prevEv">◀ event</button>
+      <button id="nextEv">event ▶</button>
+      <button class="on" id="lay">Banners</button>
+      <span class="clock" id="clock"></span>
+    </div>
+    <div class="timeline"><canvas id="tlc"></canvas>
+      <div class="tlab"><span id="t0"></span><span>scout above · model below</span><span id="t1"></span></div>
+    </div>
+    <div class="cards">
+      <div class="card"><h2>Strictness ladder</h2><table id="ladder"></table>
+        <p class="hint" style="margin:8px 0 0">Each row adds one requirement to the one above.</p></div>
+      <div class="card"><h2>Per action type</h2><table id="types"></table></div>
+      <div class="card" style="grid-column:1/-1"><h2>What every iteration said here
+        <span class="hint" id="evoat"></span></h2>
+        <div class="evo" id="evo"></div>
+        <p class="hint" style="margin:8px 0 0">The event nearest the playhead, as each run
+          reported it. Click one to switch to that run.</p></div>
+      <div class="card" style="grid-column:1/-1"><h2>The prompt that produced this
+        <button id="pmode" style="float:right">show what changed</button></h2>
+        <pre id="pbox"></pre></div>
+      <div class="card"><h2>Is the reference trustworthy?</h2><div class="chk" id="rig"></div></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: what the model said -->
+  <div class="col">
+    <div class="colhead"><h2>Model output</h2>
+      <div class="step">
+        <button id="rprev" title="previous iteration  [">◀</button>
+        <select id="run"></select>
+        <button id="rnext" title="next iteration  ]">▶</button>
+      </div>
+      <div class="hero"><b id="f1">—</b><span class="hint" id="cfg"></span></div>
+      <div class="sub" id="sum"></div>
+      <canvas id="spark" height="34"></canvas></div>
+    <div class="vc" id="vc"></div>
+    <div class="list" id="ailist"></div>
+  </div>
+</main>
+<script>
+const FPS = 30, FLASH = 0.6;
+const VC = { ok:"--ok", team:"--team", action:"--action", miss:"--miss", ghost:"--ghost" };
+const VLABEL = { ok:"correct", team:"wrong team", action:"wrong action",
+                 miss:"missed", ghost:"phantom" };
+const SHORT = { ok:"correct", team:"team", action:"action", miss:"missed", ghost:"phantom" };
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+// fixed order, validated for both colour-vision deficiency and contrast on this surface
+const LCOL = ["#3987e5", "#d95926", "#199e70", "#c98500"];
+const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+
+let D=null, run=null, runIdx=0, filter=null, rows=[], dur=0, whole=false;
+
+function setRun(i){
+  if(!D || i<0 || i>=D.runs.length) return;
+  runIdx=i; run=D.runs[i];
+  document.getElementById("run").value=i;
+  document.getElementById("rprev").disabled = i===0;
+  document.getElementById("rnext").disabled = i===D.runs.length-1;
+  lastEvo=-1; paint();
+}
+const vid=document.getElementById("vid"), cv=document.getElementById("cv");
+const ctx=cv.getContext("2d"), tlc=document.getElementById("tlc"), tctx=tlc.getContext("2d");
+
+fetch("vlm.json").then(r=>r.json()).then(d=>{
+  D=d;
+  // The whole-match encode writes its index at the END of the file, so the mp4 existing does
+  // not mean it can be played. A marker file, written only when ffmpeg exits, is the signal.
+  fetch("match.ready",{method:"HEAD"}).then(r=>start(r.ok)).catch(()=>start(false));
+});
+
+function start(hasMatch){
+  whole = hasMatch;
+  vid.src = whole ? D.match_video : "window_7025.mp4";
+  vid.onerror = () => { if (whole) { whole=false; vid.src="window_7025.mp4"; paint(); } };
+  // Runs in the order they were actually run, main lineage then the blind one. The point of
+  // the page is watching an iteration change what the model says, so the sequence is the axis.
+  D.runs.sort((a,b) => a.lineage===b.lineage ? a.n-b.n : (a.lineage==="main"?-1:1));
+  const sel=document.getElementById("run");
+  sel.innerHTML = D.runs.map((r,i)=>
+    `<option value="${i}">${r.name} · ${r.match.f1.toFixed(3)}</option>`).join("");
+  sel.onchange = () => setRun(+sel.value);
+  document.getElementById("rprev").onclick = () => setRun(runIdx-1);
+  document.getElementById("rnext").onclick = () => setRun(runIdx+1);
+  setRun(0);
+  const g=D.rigour;
+  document.getElementById("rig").innerHTML=[
+    ["matcher sanity", `ground truth against itself = ${g.selftest}`],
+    ["clock alignment", `best offset by sweep = ${g.offset.toFixed(1)}s — no constant lag`],
+    ["team polarity", `${g.swap[0]} as labelled vs ${g.swap[1]} swapped`],
+    ["coverage", `${g.n_gt} events, ${fmt(g.span[0])}–${fmt(g.span[1])}`]
+  ].map(r=>`<i>✓</i><div><b>${r[0]}</b><br><span class="hint">${r[1]}</span></div>`).join("");
+  document.getElementById("meta").textContent = whole
+    ? `whole match · every one of ${g.n_gt} scored events is on this timeline`
+    : `4-minute window from ${fmt(D.window.start_s)} · full-match video still encoding`;
+  paintLineages(); paintConvergence(); paintAccumulation();
+  paint();
+  vid.addEventListener("loadedmetadata",()=>{dur=vid.duration; resize(); paintTl(0);});
+  requestAnimationFrame(tick);
+}
+
+function paint(){
+  rows = whole ? run.all : run.rows;
+  const c = whole ? run.allCounts : run.counts;
+  document.getElementById("f1").textContent = run.match.f1.toFixed(3);
+  document.getElementById("cfg").textContent = run.cfg;
+  document.getElementById("sum").textContent =
+    `${run.match.tp} of ${run.match.gt} named right · ${run.match.n_pred} reported`;
+  document.getElementById("gtsub").textContent =
+    `${rows.filter(r=>r.gt).length} events${filter?" — filtered":""}`;
+  document.getElementById("vc").innerHTML = Object.keys(VC).map(k=>
+    `<button data-v="${k}" class="${filter===k?"on":""}" style="color:${css(VC[k])}">`+
+    `<b>${c[k]}</b><span>${SHORT[k]}</span></button>`).join("");
+  document.querySelectorAll("#vc button").forEach(b=>b.onclick=()=>{
+    filter = filter===b.dataset.v ? null : b.dataset.v; paint();
+  });
+  document.getElementById("ladder").innerHTML =
+    "<tr><th>must match</th><th>F1</th><th>events</th></tr>"+run.ladder.map(l=>
+      `<tr class="${l.level==="+type"?"key":""}"><td>${
+        {timing:"time only","+type":"+ action","+team":"+ team","+number":"+ number"}[l.level]
+      }</td><td>${l.f1.toFixed(3)}</td><td>${l.matched}</td></tr>`).join("");
+  document.getElementById("types").innerHTML =
+    "<tr><th>action</th><th>real</th><th>said</th><th>prec</th><th>rec</th><th>F1</th></tr>"+
+    run.types.map(t=>`<tr><td>${t.type}</td><td>${t.gt}</td><td>${t.ai}</td>`+
+      `<td>${t.p.toFixed(2)}</td><td>${t.r.toFixed(2)}</td><td>${t.f1.toFixed(3)}</td></tr>`).join("");
+  buildLists(); paintTl(vid.currentTime||0); paintSpark(); buildEvo(true); paintPrompt();
+  if(D.lineages) paintLineages();
+}
+
+// ---- lineages: one trajectory each, which is the convergence question made visible -------
+function lineageKeys(){ return Object.keys(D.lineages).filter(k => D.lineages[k].n); }
+
+function paintLineages(){
+  const keys = lineageKeys();
+  const c = document.getElementById("lc"), x = c.getContext("2d");
+  c.width = c.clientWidth || 700; c.height = 130;
+  const w = c.width, h = c.height, ml = 40, mb = 18, mt = 8;
+  x.clearRect(0,0,w,h);
+  const all = D.runs.map(r => r.match.f1);
+  const lo = Math.min(...all) - .01, hi = Math.max(...all) + .01;
+  const maxN = Math.max(...keys.map(k => D.runs.filter(r => r.lineage===k).length));
+  const px = i => ml + i*(w-ml-14)/Math.max(1,maxN-1);
+  const py = v => mt + (hi-v)*(h-mt-mb)/(hi-lo);
+  [lo, (lo+hi)/2, hi].forEach(v => {
+    x.strokeStyle="#242b33"; x.lineWidth=1; x.beginPath();
+    x.moveTo(ml, py(v)); x.lineTo(w-14, py(v)); x.stroke();
+    x.fillStyle="#8b949e"; x.font="10px ui-monospace, Menlo, monospace";
+    x.fillText(v.toFixed(2), 6, py(v)+3);
+  });
+  keys.forEach((k, ki) => {
+    const rs = D.runs.filter(r => r.lineage===k);
+    x.strokeStyle = LCOL[ki % LCOL.length]; x.lineWidth = 2;
+    x.beginPath();
+    rs.forEach((r,i) => i ? x.lineTo(px(i), py(r.match.f1)) : x.moveTo(px(i), py(r.match.f1)));
+    x.stroke();
+    rs.forEach((r,i) => {
+      const cur = r === run;
+      x.fillStyle = cur ? "#ffd33d" : LCOL[ki % LCOL.length];
+      x.beginPath(); x.arc(px(i), py(r.match.f1), cur ? 5 : 3, 0, 7); x.fill();
+    });
+  });
+  x.fillStyle="#8b949e"; x.font="10px ui-sans-serif";
+  x.fillText("round within lineage", ml, h-5);
+  c.onclick = e => {
+    const b = c.getBoundingClientRect();
+    const i = Math.round(((e.clientX-b.left-ml)/(b.width-ml-14))*(maxN-1));
+    const yv = lo + (1-(e.clientY-b.top-mt)/(b.height-mt-mb))*(hi-lo);
+    let best=null, bd=1e9;
+    keys.forEach(k => {
+      const rs=D.runs.filter(r=>r.lineage===k);
+      if(i<0||i>=rs.length) return;
+      const d=Math.abs(rs[i].match.f1-yv);
+      if(d<bd){bd=d; best=rs[i];}
+    });
+    if(best) setRun(D.runs.indexOf(best));
+  };
+  document.getElementById("lintab").innerHTML =
+    '<h2>Lineages — do they converge?</h2>' + keys.map((k,ki) => {
+      const v=D.lineages[k], f=v.final;
+      return `<div class="lrow ${run&&run.lineage===k?"cur":""}" data-k="${k}">
+        <i style="background:${LCOL[ki%LCOL.length]}"></i>
+        <div><div class="nm">${v.label}</div>
+          <div class="st">settled: ${f.clip}s/${f.overlap}s · ${f.fps}fps · ${f.crop?"cropped":"full frame"} · ${f.words}w prompt</div></div>
+        <div class="f">${v.start.toFixed(3)} → ${v.end.toFixed(3)}<br>
+          <span class="st">best ${v.best.toFixed(3)}</span></div></div>`;
+    }).join('');
+  document.querySelectorAll(".lrow").forEach(d => d.onclick = () => {
+    const first = D.runs.findIndex(r => r.lineage === d.dataset.k);
+    if(first >= 0) setRun(first);
+  });
+}
+
+let pdiff = false;
+const esc = t => t.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function paintAccumulation(){
+  const a = D.accumulation, box = document.getElementById("acc");
+  if(!a){ box.style.display="none"; return; }
+  const R = a.rules;
+  box.innerHTML =
+    `<h2>Where the rules came from</h2>
+     <div class="cap">Each lineage began with a prompt containing none of these rules (D began
+       with three, because its seed was written taxonomy-first). Green marks the rounds where a
+       rule is present in the prompt. They pick the same rules up, in different orders, at
+       different rounds, having never seen each other.</div>
+     <div class="acc">` +
+    a.lineages.map(L => {
+      const n = L.rounds.length;
+      return `<div class="accbox"><h3>${L.lineage}</h3>
+        <div class="seed">seed ${L.seedWords}w · ${L.seedHas}/${R.length} rules →
+          final ${L.rounds[n-1].words}w · ${
+          R.filter(r=>L.rounds[n-1].hit[r]).length}/${R.length}</div>
+        <div class="agrid" style="--r:${n}">
+          <div class="hr"><span></span><span></span>${
+            L.rounds.map(r=>`<span class="rd">${r.label==="seed"?"s":r.label.replace(/^0+/,"")||"0"}</span>`).join("")}</div>
+          ${R.map(rule=>`<div class="hr"><span class="lb" style="grid-column:1/3">${rule}</span>${
+            L.rounds.map(r=>`<span class="cell ${r.hit[rule]?"on":""}" title="${rule} — round ${r.label}"></span>`).join("")
+          }</div>`).join("")}
+        </div></div>`;
+    }).join("") + `</div>`;
+}
+
+function paintPrompt(){
+  const box = document.getElementById("pbox");
+  const btn = document.getElementById("pmode");
+  btn.textContent = pdiff ? "show the whole prompt" : "show what changed";
+  btn.style.color = pdiff ? "var(--accent)" : "var(--dim)";
+  if(!pdiff){ box.innerHTML = esc(run.prompt || ""); return; }
+  if(!run.diff || !run.diff.length){
+    box.innerHTML = '<span class="none">this round changed a setting, not the prompt</span>';
+    return;
+  }
+  box.innerHTML = run.diff.map(l =>
+    `<span class="${l[0]==="+"?"add":"del"}">${esc(l)}</span>`).join("\n");
+}
+document.getElementById("pmode").onclick = () => { pdiff = !pdiff; paintPrompt(); };
+
+function paintConvergence(){
+  const c = D.convergence, box = document.getElementById("conv");
+  if(!c){ box.style.display="none"; return; }
+  const K = c.lineages, n = K.length;
+  const sim = c.similarity.map(s => s.r);
+  const lo = Math.round(Math.min(...sim)*100), hi = Math.round(Math.max(...sim)*100);
+  box.innerHTML =
+    `<h2>Do the lineages converge?</h2>
+     <div class="cap">Each ran blind — its own notebook, its own results, no sight of the others.
+       The final prompts share only ${lo}–${hi}% of their text, so agreement is asked at the level
+       of the rule, not the wording.</div>
+     <div class="ctab" style="--n:${n}">
+       <div class="hd"><span>rule reached independently</span>${
+         K.map(k=>`<span class="c">${k}</span>`).join("")}<span class="n">agreed</span></div>
+       ${c.rules.map(r=>`<div class="rw ${r.n===n?"all":""}"><span>${r.rule}</span>${
+         K.map(k=>`<span class="c ${r.hit[k]?"yes":"no"}">${r.hit[k]?"✓":"·"}</span>`).join("")
+       }<span class="n">${r.n}/${n}</span></div>`).join("")}
+     </div>
+     <div class="simrow">Prompt lengths: ${K.map(k=>`${k} ${c.words[k]}w`).join(" · ")}</div>`;
+}
+
+function paintSpark(){
+  const c=document.getElementById("spark"), x=c.getContext("2d");
+  c.width=c.clientWidth||280; const w=c.width, h=c.height;
+  x.clearRect(0,0,w,h);
+  const f=D.runs.map(r=>r.match.f1), lo=Math.min(...f)-.01, hi=Math.max(...f)+.01;
+  const px=i=>4+i*(w-8)/Math.max(1,f.length-1), py=v=>h-4-((v-lo)/(hi-lo))*(h-8);
+  x.strokeStyle="#3a424d"; x.lineWidth=1.5; x.beginPath();
+  f.forEach((v,i)=> i?x.lineTo(px(i),py(v)):x.moveTo(px(i),py(v))); x.stroke();
+  const best=f.indexOf(Math.max(...f));
+  x.fillStyle="#3fb950"; x.beginPath(); x.arc(px(best),py(f[best]),3,0,7); x.fill();
+  x.fillStyle="#ffd33d"; x.beginPath(); x.arc(px(runIdx),py(f[runIdx]),4,0,7); x.fill();
+}
+document.getElementById("spark").onclick = e => {
+  const c=e.target, r=c.getBoundingClientRect();
+  setRun(Math.round(((e.clientX-r.left-4)/(r.width-8))*(D.runs.length-1)));
+};
+
+// ---- what every iteration said at this moment -------------------------------------------
+let lastEvo=-1;
+function buildEvo(force){
+  const t=vid.currentTime||0;
+  const src = whole ? "all" : "rows";
+  const mine = run[src].filter(r=>r.gt);
+  if(!mine.length) return;
+  let k=0, bd=1e9;
+  mine.forEach((r,i)=>{ const d=Math.abs(r.t-t); if(d<bd){bd=d;k=i;} });
+  const tg = mine[k].t;
+  if(!force && tg===lastEvo) return;
+  lastEvo=tg;
+  const g=mine[k].gt;
+  document.getElementById("evoat").textContent =
+    `— ${fmt(tg)} · ${g.type} ${g.team}${g.num?" #"+g.num:""}`;
+  document.getElementById("evo").innerHTML = D.runs.map((r,i)=>{
+    const row=r[src].find(q=>q.gt && Math.abs(q.t-tg)<0.05);
+    const said = row ? (row.ai ? `${row.ai.type} ${row.ai.team??"?"}` : "—") : "?";
+    const col = row ? css(VC[row.v]) : "#4a5058";
+    return `<div data-i="${i}" class="${i===runIdx?"cur":""}" style="border-left-color:${col}">`+
+           `<span class="n">${r.lineage==="blind"?"b":""}${r.n<0?"seed":(r.n===99?"·":String(r.n).padStart(3,"0"))}</span>`+
+           `<span class="a" style="color:${col}">${said}</span></div>`;
+  }).join("");
+  document.querySelectorAll("#evo div").forEach(d=>d.onclick=()=>setRun(+d.dataset.i));
+}
+
+function shown(){ return rows.filter(r=>!filter||r.v===filter); }
+
+function buildLists(){
+  const L=document.getElementById("gtlist"), R=document.getElementById("ailist");
+  L.innerHTML=""; R.innerHTML="";
+  const fl=document.createDocumentFragment(), fr=document.createDocumentFragment();
+  shown().forEach(r=>{
+    const col=css(VC[r.v]);
+    const mk=(side)=>{
+      const d=document.createElement("div");
+      const has = side==="gt" ? !!r.gt : !!r.ai;
+      d.className = "row"+(has?"":" none"); d.dataset.t=r.t;
+      d.style.borderLeftColor = has ? col : "transparent";
+      const body = side==="gt"
+        ? (r.gt ? `${r.gt.type} · ${r.gt.team}${r.gt.num?" #"+r.gt.num:""}` : "nothing happened")
+        : (r.ai ? `${r.ai.type} · ${r.ai.team ?? "?"}` : "nothing reported");
+      d.innerHTML = `<div class="t">${fmt(r.t)}${
+        side==="ai"&&r.ai&&r.ai.dt!=null?` <span style="color:#4a5058">${r.ai.dt>=0?"+":""}${r.ai.dt}s</span>`:""}</div>
+        <div class="m">${body}</div>
+        <div class="v" style="color:${col}">${VLABEL[r.v]}</div>`;
+      d.onclick=()=>{ userScroll=0; seek(r.t-0.4); };
+      return d;
+    };
+    fl.appendChild(mk("gt")); fr.appendChild(mk("ai"));
+  });
+  L.appendChild(fl); R.appendChild(fr);
+  lastIdx = -1;
+}
+
+function resize(){
+  const r=vid.getBoundingClientRect();
+  cv.width=r.width; cv.height=r.height;
+  tlc.width=tlc.parentElement.clientWidth; tlc.height=60;
+}
+addEventListener("resize",resize);
+
+function paintTl(t){
+  const w=tlc.width,h=tlc.height,L=dur||1;
+  tctx.clearRect(0,0,w,h);
+  tctx.strokeStyle="#3a424d"; tctx.lineWidth=1;
+  tctx.beginPath(); tctx.moveTo(8,h/2); tctx.lineTo(w-8,h/2); tctx.stroke();
+  for(const r of rows){
+    if(filter&&r.v!==filter) continue;
+    const f=r.t/L; if(f<0||f>1) continue;
+    const x=8+f*(w-16);
+    tctx.strokeStyle=css(VC[r.v]);
+    tctx.lineWidth=(r.v==="ghost"||r.v==="miss")?1.4:1;
+    tctx.beginPath();
+    if(r.gt){ tctx.moveTo(x,h/2-3); tctx.lineTo(x,h/2-19); }
+    if(r.ai){ tctx.moveTo(x,h/2+3); tctx.lineTo(x,h/2+19); }
+    tctx.stroke();
+  }
+  const x=8+(t/L)*(w-16);
+  tctx.strokeStyle="#ffd33d"; tctx.lineWidth=2;
+  tctx.beginPath(); tctx.moveTo(x,2); tctx.lineTo(x,h-2); tctx.stroke();
+  document.getElementById("t0").textContent=fmt(0);
+  document.getElementById("t1").textContent=fmt(L);
+}
+tlc.onclick=e=>{const r=tlc.getBoundingClientRect();
+  seek(((e.clientX-r.left-8)/(r.width-16))*(dur||1));};
+
+function drawBanners(t){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(!document.getElementById("lay").classList.contains("on")) return;
+  const live=rows.filter(r=>Math.abs(r.t-t)<=FLASH), pad=11, H=36;
+  live.slice(0,5).forEach((r,i)=>{
+    const col=css(VC[r.v]), y=14+i*(H+7);
+    ctx.font="600 16px ui-sans-serif, system-ui, sans-serif";
+    if(r.gt){
+      const a=`${r.gt.type.toUpperCase()} ${r.gt.team}`;
+      const w=ctx.measureText(a).width+pad*2;
+      ctx.fillStyle="rgba(0,0,0,.76)"; ctx.fillRect(12,y,w,H);
+      ctx.strokeStyle=col; ctx.lineWidth=2; ctx.strokeRect(12,y,w,H);
+      ctx.fillStyle="#e6edf3"; ctx.fillText(a,12+pad,y+24);
+    }
+    ctx.font="600 16px ui-monospace, Menlo, monospace";
+    if(r.ai){
+      const b=`${r.ai.type} ${r.ai.team ?? "?"}`;
+      const w=ctx.measureText(b).width+pad*2, x=cv.width-12-w;
+      ctx.fillStyle="rgba(0,0,0,.76)"; ctx.fillRect(x,y,w,H);
+      ctx.strokeStyle=col; ctx.lineWidth=2; ctx.strokeRect(x,y,w,H);
+      ctx.fillStyle=col; ctx.fillText(b,x+pad,y+24);
+    }
+  });
+}
+
+// Both columns follow the video. They are row-aligned, so they must scroll together or the
+// comparison breaks: the scout's line and the model's line for the same instant have to stay
+// on the same screen row. Nearest-row rather than only-when-an-event-is-live, so the lists
+// keep creeping through dead time instead of sitting still and then jumping.
+let lastIdx = -1, userScroll = 0;
+["gtlist","ailist"].forEach(id => document.getElementById(id).addEventListener("wheel", () => {
+  userScroll = performance.now();      // hands off for a moment after a manual scroll
+}, {passive:true}));
+
+function follow(t){
+  const list = shown();
+  if(!list.length) return;
+  let lo=0, hi=list.length-1;          // nearest row at or before t
+  while(lo<hi){ const m=(lo+hi+1)>>1; (list[m].t<=t) ? lo=m : hi=m-1; }
+  let idx = lo;
+  if(idx+1<list.length && Math.abs(list[idx+1].t-t) < Math.abs(list[idx].t-t)) idx++;
+  if(idx===lastIdx) return;
+  lastIdx = idx;
+  if(performance.now()-userScroll < 4000) return;
+  for(const id of ["gtlist","ailist"]){
+    const box=document.getElementById(id), el=box.children[idx];
+    if(!el) continue;
+    box.scrollTo({ top: el.offsetTop - box.clientHeight/2 + el.offsetHeight/2,
+                   behavior: vid.paused ? "smooth" : "auto" });
+  }
+}
+
+function tick(){
+  const t=vid.currentTime;
+  drawBanners(t); paintTl(t); follow(t); buildEvo(false);
+  document.getElementById("clock").textContent =
+    `${fmt(t)} / ${fmt(dur)}` + (whole ? `  ·  match ${fmt(t+D.origin)}` : "");
+  document.querySelectorAll(".row").forEach(el=>
+    el.classList.toggle("live", Math.abs(+el.dataset.t-t)<=FLASH));
+  requestAnimationFrame(tick);
+}
+
+function seek(t){ vid.currentTime=Math.max(0,Math.min(dur||1e9,t)); }
+document.getElementById("play").onclick=()=>vid.paused?vid.play():vid.pause();
+document.getElementById("prev").onclick=()=>{vid.pause(); seek(vid.currentTime-1/FPS);};
+document.getElementById("next").onclick=()=>{vid.pause(); seek(vid.currentTime+1/FPS);};
+document.getElementById("lay").onclick=e=>e.target.classList.toggle("on");
+function jump(d){
+  const t=vid.currentTime, l=shown().map(r=>r.t);
+  const n = d>0 ? l.find(x=>x>t+0.05) : [...l].reverse().find(x=>x<t-0.05);
+  if(n!=null) seek(n-0.3);
+}
+document.getElementById("prevEv").onclick=()=>jump(-1);
+document.getElementById("nextEv").onclick=()=>jump(1);
+addEventListener("keydown",e=>{
+  if(e.key===" "){e.preventDefault(); document.getElementById("play").click();}
+  if(e.key==="ArrowLeft") document.getElementById("prev").click();
+  if(e.key==="ArrowRight") document.getElementById("next").click();
+  if(e.key===",") jump(-1);
+  if(e.key===".") jump(1);
+  if(e.key==="[") setRun(runIdx-1);
+  if(e.key==="]") setRun(runIdx+1);
+});
+</script>
+</body>
+</html>

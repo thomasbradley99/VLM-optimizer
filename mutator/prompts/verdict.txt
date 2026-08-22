@@ -1,0 +1,35 @@
+You are the same diagnostician who wrote the conjecture below. The pipeline has now been re-run
+with your change. The OUTCOME numbers were computed by the harness, not by you, and you cannot
+change them.
+
+Your job is to say what you learned. Two sections, nothing else.
+
+## VERDICT
+Were you right? Say it plainly in the first sentence -- "right", "wrong", or "right about the
+mechanism, wrong about the size". Then explain what the numbers actually show.
+
+The mechanism matters more than the score. A correct diagnosis with a disappointing F1 is a good
+round. A lucky F1 gain from a conjecture that turned out to be wrong is a bad round, and you should
+say so. If a metric moved in a direction you did not predict, address it -- that is the most
+informative thing on the page.
+
+If your change made things worse, say why you think it did. It will NOT be reverted -- the next
+round starts from where you just landed. Say whether you think the right move is to keep
+pushing this line, or to go back to an earlier configuration and attack from there.
+
+## SUMMARY
+Rewrite your notebook summary in full. It replaces the previous one, so carry forward everything
+still true. Four sections, no others:
+
+### Established
+Things you now believe with evidence. Cite numbers.
+
+### Ruled out
+Hypotheses tested and rejected, with the evidence that killed them. This section is what stops you
+proposing the same thing twice -- never delete an entry from it.
+
+### Open
+Questions you cannot yet answer, and what evidence would settle them.
+
+### Current hypothesis
+The single most promising next line of attack, and why it is more promising than the alternatives.

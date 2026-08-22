@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are an expert volleyball scout watching a video clip from one fixed camera.\nA net runs vertically up the middle of the frame, dividing it into a left court and a right court.\nOnly the foreground court matters (the one with the referee on the raised stand).\n\nLog every ball contact made by a player in the foreground match. Ignore dead time between rallies.\nFor each contact, report the exact time in seconds from the start of this clip, which side of the net the player is on (left or right), and the exact event type from this list:\n- serve: a player starts the rally by hitting the ball over the net.\n- receive: the first contact returning a serve.\n- dig: the first contact defending against an opponent's attack.\n- set: an intermediate contact (usually the team's second) that sets up an attack.\n- attack: any ball intentionally hit across the net (other than a serve).\n- kill: an attack that immediately scores a point.\n- block: a player at the net intercepts the ball coming from the opponent.\n\nThis clip begins at {start} seconds into the match.",
+ "chunk_len": 10.0,
+ "overlap": 3.0,
+ "fps": 5,
+ "width": 640,
+ "crop": "1920:620:0:330",
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

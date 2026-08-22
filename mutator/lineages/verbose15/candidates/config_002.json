@@ -1,0 +1,12 @@
+{
+ "lever": "chunk_len",
+ "prompt": "You are an expert volleyball statistician scouting one match from a fixed camera.\n\nCONTEXT. Several courts are in use at once. Only the foreground court matters -- the one with the referee on the raised stand. The net runs vertically up the middle of the frame, so one team occupies the left half of the image and the other the right half. Identify a team by which half of the frame the contacting player stands in, never by kit colour.\n\nThis clip begins at {start} seconds into the match.\n\nTAXONOMY. Every contact belongs to exactly one of seven classes. Decide by what you can see the ball do, not by what you think the player intended.\n\n  serve    the single contact that begins a rally, struck from behind the back line. Never report a serve mid-rally.\n  receive  the first defensive contact answering a serve. Maximum one per rally.\n  dig      a defensive contact answering an attack; the ball stays on that side\n  set      a contact that places the ball for a team-mate to attack, BUT ONLY report it if the resulting attack is a kill (an assist).\n  attack   any contact that sends the ball over the net to the opponents\n  kill     an attack that ends the rally immediately\n  block    a contact made at the net by a player with hands above it\n\nREPORTING. Give one row per contact you actually observe:\n  t        time of contact in absolute match seconds, to a fraction of a second\n  type     one of the seven above\n  side     \"left\" or \"right\", the half of the frame the contacting player is in\n  number   the jersey number as a string, or null if you cannot read it\n  error    true if the contact was a mistake -- into the net, out of bounds, mishandled\n  point    true ONLY if the team making THIS contact won the rally. If this contact is an error that loses the rally, point MUST be false.\n\nIf nothing happens in this clip, return an empty list.",
+ "chunk_len": 15.0,
+ "overlap": 4.0,
+ "fps": 5,
+ "width": 640,
+ "crop": "1920:620:0:330",
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}

@@ -1,0 +1,156 @@
+{
+ "config": "iter_023 prompt, 6s/2s, cropped, 5fps",
+ "sample": "1x5min",
+ "windows": [
+  [
+   995.0,
+   1295.0
+  ]
+ ],
+ "results": [
+  {
+   "model": "gemini-3.7-flash",
+   "f1": 0.5116,
+   "tp": 33,
+   "n_pred": 73,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-3.5-flash",
+   "f1": 0.4371,
+   "tp": 33,
+   "n_pred": 95,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-robotics-er-2-preview",
+   "f1": 0.4031,
+   "tp": 26,
+   "n_pred": 73,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 1.68,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 3.7
+  },
+  {
+   "model": "gemini-flash-latest",
+   "f1": 0.3937,
+   "tp": 25,
+   "n_pred": 71,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.26,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.3
+  },
+  {
+   "model": "gemini-3.6-flash",
+   "f1": 0.375,
+   "tp": 27,
+   "n_pred": 88,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-3.1-pro-preview",
+   "f1": 0.3216,
+   "tp": 32,
+   "n_pred": 143,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-pro-latest",
+   "f1": 0.2871,
+   "tp": 29,
+   "n_pred": 146,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.53,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 8.2
+  },
+  {
+   "model": "gemini-3.5-flash-lite",
+   "f1": 0.2732,
+   "tp": 28,
+   "n_pred": 149,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-flash-lite-latest",
+   "f1": 0.2341,
+   "tp": 24,
+   "n_pred": 149,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.17,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.1
+  },
+  {
+   "model": "gemini-3-flash-preview",
+   "f1": 0.2286,
+   "tp": 20,
+   "n_pred": 119,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-3.1-flash-lite",
+   "f1": 0.1892,
+   "tp": 42,
+   "n_pred": 388,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 0.0,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 0.0
+  },
+  {
+   "model": "gemini-2.5-pro",
+   "f1": 0.1418,
+   "tp": 29,
+   "n_pred": 353,
+   "n_gt": 56,
+   "clips": 75,
+   "cost": 2.87,
+   "fail": 0,
+   "throttled": 0,
+   "mins": 1.6
+  }
+ ]
+}

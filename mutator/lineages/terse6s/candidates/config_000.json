@@ -1,0 +1,12 @@
+{
+ "lever": "prompt",
+ "prompt": "You are watching a volleyball match from a fixed camera.\n\nThis clip begins at {start} seconds into the match.\n\nList ball contacts you see DURING LIVE PLAY ONLY. Ignore all dead-time contacts (e.g., players bouncing or passing the ball between rallies).\n\nRules for types:\n- serve: The hit from behind the baseline that starts a rally.\n- receive: ONLY the first contact returning a serve.\n- dig: A defensive pass saving an opponent's attack. (Do not report easy freeball passes).\n- set: ONLY report a 'set' if the subsequent attack results in a 'kill'. If it leads to a normal 'attack' or an error, DO NOT report the set.\n- attack: An offensive hit. If it goes out or into the net, set error=true.\n- kill: An offensive hit that immediately scores a point (hits the opponent's floor or is unplayable).\n- block: A defensive block at the net.\n\nFor each contact give:\n  t       - time of contact in absolute match seconds\n  type    - serve, receive, dig, set, attack, kill or block\n  side    - \"left\" or \"right\": which half of the frame the player is in\n  number  - jersey number as a string, or null\n  error   - true if the contact was a mistake\n  point   - true if the rally ended here",
+ "chunk_len": 6.0,
+ "overlap": 2.0,
+ "fps": 5,
+ "width": 640,
+ "crop": null,
+ "media_resolution": null,
+ "model": "gemini-3.7-flash",
+ "thinking": "low"
+}
