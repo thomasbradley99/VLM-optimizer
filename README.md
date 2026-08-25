@@ -25,6 +25,14 @@ starting configuration           0.342    321/550   202     147
 **F1 = 2·TP / (n_pred + 550)**, where a true positive means the model put an event within
 1.0 s of a real one *and* named the action correctly.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/ladder-dark.svg">
+  <img alt="Strictness ladder: F1 0.655 on timing alone, 0.463 once the action must be named, 0.374 with the team, 0.029 with the jersey number" src="docs/ladder-light.svg" width="100%">
+</picture>
+
+Each rung adds one more thing the model has to get right. It finds the events. It cannot read
+the jersey — 19 of 550, which is the honest ceiling on anything that needs a named player.
+
 The interesting finding is not the score. It is what happened when four optimiser lineages ran
 **blind** — separate notebooks, separate results stores, no sight of one another — from four
 different starting points:
@@ -40,9 +48,15 @@ ignore dead time                 yes   yes   yes   yes
 Their final prompts share **3–14 % of their text**. Four dissimilar documents encoding the same
 four rules. Convergence appears in what is *learned*, not in what is written.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/lineages-dark.svg">
+  <img alt="F1 by round for four optimiser lineages run blind of one another, with the ±0.028 repeat-run noise band drawn to scale" src="docs/lineages-light.svg" width="100%">
+</picture>
+
 And the honest other half: of 33 rounds across the blind lineages, only 11 moved the score by
 more than the ±0.028 repeat-run noise, and those split 6 up / 5 down. **It is a good
-diagnostician and a mediocre optimiser.** Both halves are in the write-up.
+diagnostician and a mediocre optimiser.** Both halves are in the write-up. The noise band is
+drawn to scale above — most rounds do not clear it, and lineage B ends below where it started.
 
 ---
 
@@ -172,6 +186,15 @@ result, and see the four lineage trajectories and the convergence table.
   0.434 over the full match.
 
 ## Where it falls short
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/types-dark.svg">
+  <img alt="F1 by action type for the best run: attack 0.506 down to block 0.125" src="docs/types-light.svg" width="100%">
+</picture>
+
+Attack, kill and serve carry the score; set is weak because the model calls a set on any second
+contact rather than only on an assist; block is 9 events in 550, so that bar is sampling noise
+rather than a finding about blocks.
 
 319 phantom detections against 131 misses — the larger pool, and 83 % of them fall *inside* live
 rallies, so no rule about dead time or rally structure removes them (measured: +0.003). Remove
