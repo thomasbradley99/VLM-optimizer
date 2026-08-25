@@ -4,8 +4,12 @@ down. `error`/`point` are never standalone here, so they ride as flags rather th
 import csv
 import os
 
-CSV = os.path.join(os.path.dirname(__file__), "..", "volleyball-annotated",
-                   "VEVA Impact 17-Blue (KE)-vs-TVC 17-Royal (OV)-05_31_2026 8_49 PM Actions.csv")
+# The scout sheet ships with the repo. It is the ground truth every number here is scored
+# against, so a clone that cannot read it cannot check a single claim — and it is 550 rows of
+# text, unlike the 5 GB of footage, which does not ship. Player names are already pseudonymised
+# in the source ("Player-1"); only the jersey number, team and timestamp are used for scoring.
+CSV = os.environ.get("SCOUT_CSV") or os.path.join(
+    os.path.dirname(__file__), "data", "scout_actions.csv")
 
 TYPES = ["serve", "receive", "dig", "set", "attack", "kill", "block"]
 EXPECTED = {"serve": 118, "receive": 107, "dig": 86, "set": 47,

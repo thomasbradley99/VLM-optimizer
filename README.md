@@ -122,12 +122,26 @@ SCHEMA = {"type": "OBJECT", "properties": {"events": {"type": "ARRAY", "items": 
 ```bash
 pip install google-genai opencv-python numpy
 echo "GEMINI_API_KEY=..." > .env
+```
+
+The scout sheet — the 550 events every number here is scored against — ships in
+`data/scout_actions.csv`, so the evaluation is checkable without asking anyone for
+anything. The 62 minutes of footage does not ship; point `chunk.py` at your own copy, or
+set `SCOUT_CSV` to score a different sheet.
+
+```bash
 
 python3 main.py                      # score the baseline
 python3 mutator/mutator.py --dry-run # one optimiser round, writes nothing
 python3 mutator/mutator.py --rounds 8 --budget 40
 python3 benchmark.py --blocks 1 --minutes 5   # 12 models head to head
 python3 serve_viewer.py --dir viewer --port 8000   # the reviewer, then open /vlm.html
+```
+
+`viewer/vlm.html` runs with no video present — every chart, all 45 runs, the convergence
+table and the rigour panel come out of `viewer/vlm.json`. Only the video pane stays empty.
+
+```bash
 ```
 
 Responses are cached on a hash of the prompt, every pipeline setting *and* the clip geometry, so
