@@ -25,7 +25,12 @@ from google.genai import types  # noqa: E402
 import dedupe as dd             # noqa: E402
 import detect                   # noqa: E402
 
-VIDEO = os.path.join(ROOT, "..", "volleyball-annotated", "full-001.mp4")
+# Local development keeps the source video next to the repository.  Remote runners (including
+# Daytona) provide it at a sandbox-specific path instead, without putting the 5.6 GB source
+# file under version control.
+VIDEO = os.environ.get("VLM_VIDEO_PATH") or os.path.join(
+    ROOT, "..", "volleyball-annotated", "full-001.mp4"
+)
 VARIANTS = os.path.join(HERE, "variants")
 SPAN = (995.0, 4715.0)
 PRICES = {"gemini-3.7-flash": (0.75, 3.75), "gemini-3.1-pro-preview": (2.00, 12.00)}
